@@ -1,0 +1,20 @@
+{
+    "name": "lightgear/asset",
+    "description": "",
+    "authors": [
+        {
+            "name": "Donato Rotunno",
+            "email": "ralf57@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "illuminate/support": "4.0.x"
+    },
+    "autoload": {
+        "psr-0": {
+            "Lightgear\\Asset": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
