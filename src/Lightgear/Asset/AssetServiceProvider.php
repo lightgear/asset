@@ -12,16 +12,24 @@ class AssetServiceProvider extends ServiceProvider {
 	protected $defer = false;
 
 	/**
+	 * Bootstrap the application.
+	 *
+	 * @return void
+	 */
+	public function boot()
+	{
+		$this->package('lightgear/asset');
+    }
+
+	/**
 	 * Register the service provider.
 	 *
 	 * @return void
 	 */
 	public function register()
 	{
-		$this->package('lightgear/asset');
-
 		$this->app['asset'] = $this->app->share(function($app) {
-			return new AssetManager($app);
+			return new Asset($app);
 		});
 	}
 
@@ -34,5 +42,4 @@ class AssetServiceProvider extends ServiceProvider {
 	{
 		return array();
 	}
-
 }
