@@ -1,6 +1,7 @@
 <?php namespace Lightgear\Asset;
 
 use File,
+    HTML,
     lessc;
 
 class Asset {
@@ -54,6 +55,7 @@ class Asset {
     public function styles()
     {
         $this->processAssets($this->styles);
+        $this->publish('styles');
     }
 
     /**
@@ -64,6 +66,7 @@ class Asset {
     public function scripts()
     {
         $this->processAssets($this->scripts);
+        $this->publish('scripts');
     }
 
     /**
@@ -118,7 +121,7 @@ class Asset {
                             break;
                         case 'js':
                             $assetData['contents'] = file_get_contents($file->getRealPath());
-                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
+                            $assetData += $this->buildTargetPaths($file, $package, 'scripts');
                             $this->processed['scripts'][] = $assetData;
                             break;
                         default:
@@ -212,16 +215,31 @@ class Asset {
     /**
      * Publish an asset
      *
-     * @param  string $target   The full destination path
-     * @param  string $contents The asset contents
+     * @param  string $types   The type to publish
      * @return void
      */
-    protected function publish($target, $contents)
+    protected function publish($type)
     {
-        if ( ! file_exists(dirname($target))) {
-            File::makeDirectory(dirname($target), 0777, true);
+        $output = '';
+
+        foreach ($this->processed[$type] as $asset) {
+
+            // prepare target directory
+            if ( ! file_exists(dirname($asset['full']))) {
+                File::makeDirectory(dirname($asset['full']), 0777, true);
+            }
+
+            // create the asset file
+            File::put($asset['full'], $asset['contents']);
+
+            // add the element
+            if ($type === 'styles') {
+                $output .= HTML::style($asset['link']);
+            } elseif ($type === 'scripts') {
+                $output .= HTML::script($asset['link']);
+            }
         }
 
-        File::put($target, $contents);
+        echo $output;
     }
 }
