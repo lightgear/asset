@@ -201,6 +201,13 @@ class Asset {
 
     }
 
+    /**
+     * Publish an asset
+     *
+     * @param  string $target   The full destination path
+     * @param  string $contents The asset contents
+     * @return void
+     */
     protected function publish($target, $contents)
     {
         if ( ! file_exists(dirname($target))) {
