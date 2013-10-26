@@ -29,6 +29,7 @@ class AssetServiceProvider extends ServiceProvider {
 	public function register()
 	{
 		$this->app['asset'] = $this->app->share(function($app) {
+
 			return new Asset($app);
 		});
 	}

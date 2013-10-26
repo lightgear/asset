@@ -5,19 +5,17 @@ use File,
 
 class Asset {
 
+    protected $config = array();
+
     protected $styles = array();
 
     protected $scripts = array();
 
     protected $basePaths;
 
-    public function __construct()
+    public function __construct($app)
     {
-        $this->basePaths = array(
-            base_path() . '/workbench',
-            base_path() . '/vendor',
-            base_path() . '/app/assets',
-        );
+        $this->config = $app['config'];
     }
 
     /**
@@ -109,7 +107,10 @@ class Asset {
                     switch ($file->getExtension()) {
                         case 'less':
                             $targetPaths = $this->buildTargetPaths($file, $package, 'styles');
-                            $this->compileLess($file, $targetPaths['full']);
+                            $lessContent = $this->compileLess($file, $targetPaths['full']);
+
+                            $this->publish($targetPaths['full'], $lessContent);
+
                             break;
                         default:
                             break;
@@ -122,7 +123,7 @@ class Asset {
 
     /**
      * Search for the assets in the passed path
-     * also taking into account predefined base paths (workbench, vendor)
+     * taking into account configured base paths (workbench, vendor, etc)
      *
      * @param  string $path The path to search
      * @param  string $package The package the assets belong to
@@ -130,7 +131,7 @@ class Asset {
      */
     protected function findAssets($path, $package)
     {
-        foreach ($this->basePaths as $basePath) {
+        foreach ($this->config->get('asset::base_paths') as $basePath) {
 
             $fullPath = $basePath . '/'. $package . '/' . $path;
 
@@ -151,16 +152,11 @@ class Asset {
      * @param  string $target The target fullpath
      * @return void
      */
-    protected function compileLess($file, $target) {
-
-        if ( ! file_exists(dirname($target))) {
-            File::makeDirectory(dirname($target), 0777, true);
-        }
+    protected function compileLess($file) {
 
         $less = new lessc;
-        $less->checkedCompile($file->getRealPath(), $target);
+        return $less->compileFile($file->getRealPath());
 
-        return;
 
         // TODO: implement caching
         // load the cache
@@ -193,12 +189,24 @@ class Asset {
      */
     protected function buildTargetPaths($file, $package, $type)
     {
-        $link = '/assets/' . $type . '/' . $package . '/' . $file->getRelativePathname();
+        // replace .less extension by .css
+        $pathName = str_ireplace('.less', '.css', $file->getRelativePathname());
+
+        $link = '/assets/' . $type . '/' . $package . '/' . $pathName;
 
         return array(
             'link' => $link,
             'full' => public_path() . $link
         );
 
+    }
+
+    protected function publish($target, $contents)
+    {
+        if ( ! file_exists(dirname($target))) {
+            File::makeDirectory(dirname($target), 0777, true);
+        }
+
+        File::put($target, $contents);
     }
 }
