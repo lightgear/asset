@@ -11,7 +11,7 @@ class Asset {
 
     protected $scripts = array();
 
-    protected $basePaths;
+    protected $processed = array();
 
     public function __construct($app)
     {
@@ -104,20 +104,28 @@ class Asset {
 
                 foreach ($files as $file) {
 
+                    $assetData = array();
+
                     switch ($file->getExtension()) {
+                        case 'css':
+                            $assetData['contents'] = file_get_contents($file->getRealPath());
                         case 'less':
-                            $targetPaths = $this->buildTargetPaths($file, $package, 'styles');
-                            $lessContent = $this->compileLess($file, $targetPaths['full']);
-
-                            $this->publish($targetPaths['full'], $lessContent);
-
+                            $assetData['contents'] = $this->compileLess($file);
+                        case 'css':
+                        case 'less':
+                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
+                            $this->processed['styles'][] = $assetData;
+                            break;
+                        case 'js':
+                            $assetData['contents'] = file_get_contents($file->getRealPath());
+                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
+                            $this->processed['scripts'][] = $assetData;
                             break;
                         default:
                             break;
                     }
                 }
             }
-
         }
     }
 
