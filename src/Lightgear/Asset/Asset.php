@@ -22,9 +22,9 @@ class Asset {
     /**
      * Register a styles collection
      *
-     * @param  array $assets The styles to register
+     * @param  array  $assets  The styles to register
      * @param  string $package The package the styles belong to
-     * @return Asset This class instance
+     * @return Asset           This class instance
      */
     public function registerStyles($assets, $package = '')
     {
@@ -36,9 +36,9 @@ class Asset {
     /**
      * Register a scripts collection
      *
-     * @param  array $assets The scripts to register
+     * @param  array  $assets  The scripts to register
      * @param  string $package The package the scripts belong to
-     * @return Asset This class instance
+     * @return Asset           This class instance
      */
     public function registerScripts($assets, $package = '')
     {
@@ -55,7 +55,7 @@ class Asset {
     public function styles()
     {
         $this->processAssets($this->styles);
-        $this->publish('styles');
+        echo $this->publish('styles');
     }
 
     /**
@@ -66,13 +66,13 @@ class Asset {
     public function scripts()
     {
         $this->processAssets($this->scripts);
-        $this->publish('scripts');
+        echo $this->publish('scripts');
     }
 
     /**
      * Register an asset collection
      *
-     * @param  array $assets  The assets to register
+     * @param  array  $assets  The assets to register
      * @param  string $type    The type of the assets: styles or scripts
      * @param  string $package The package the assets belong to
      * @return void
@@ -136,9 +136,9 @@ class Asset {
      * Search for the assets in the passed path
      * taking into account configured base paths (workbench, vendor, etc)
      *
-     * @param  string $path The path to search
+     * @param  string $path    The path to search
      * @param  string $package The package the assets belong to
-     * @return array|null   The array of SplFileInfo objects or null
+     * @return array|null      The array of SplFileInfo objects or null
      */
     protected function findAssets($path, $package)
     {
@@ -159,8 +159,8 @@ class Asset {
     /**
      * Compile the passed less file to the target
      *
-     * @param  SplFileInfo $file The asset file
-     * @param  string $target The target fullpath
+     * @param  SplFileInfo $file   The asset file
+     * @param  string      $target The target fullpath
      * @return void
      */
     protected function compileLess($file) {
@@ -193,17 +193,32 @@ class Asset {
      * The 'link' ready to be used as asset url
      * and 'full' suitable for file creation.
      *
-     * @param  SplFileInfo $file The target file
+     * @param  Symfony\Component\Finder\SplFileInfo|string $file
+     *         The file object or the filename
      * @param  string $package The package where the asset belongs to
      * @param  string $type    The assets type
-     * @return array The target paths array
+     * @return array           The target paths array
      */
     protected function buildTargetPaths($file, $package, $type)
     {
-        // replace .less extension by .css
-        $pathName = str_ireplace('.less', '.css', $file->getRelativePathname());
+        if ($file instanceof \Symfony\Component\Finder\SplFileInfo) {
+            $pathName = $file->getRelativePathname();
+        } else {
+            $pathName = $file;
+        }
 
-        $link = '/assets/' . $type . '/' . $package . '/' . $pathName;
+
+        // replace .less extension by .css
+        $pathName = str_ireplace('.less', '.css', $pathName);
+
+        $link = '/assets/' . $type . '/';
+
+        // add package segement, if any
+        if ($package) {
+            $link .= $package . '/';
+        }
+
+        $link .= $pathName;
 
         return array(
             'link' => $link,
@@ -213,33 +228,92 @@ class Asset {
     }
 
     /**
-     * Publish an asset
+     * Publish a collection of processed assets
      *
-     * @param  string $types   The type to publish
+     * @param  string $type   The colleciton type to publish
      * @return void
      */
     protected function publish($type)
     {
         $output = '';
+        $combinedContents = '';
+        $combine = $this->config->get('asset::combine');
 
         foreach ($this->processed[$type] as $asset) {
 
-            // prepare target directory
-            if ( ! file_exists(dirname($asset['full']))) {
-                File::makeDirectory(dirname($asset['full']), 0777, true);
+            // TODO: minify
+
+            // combine assets contents
+            if ($combine) {
+                $combinedContents .= $asset['contents'];
+                continue;
             }
 
-            // create the asset file
-            File::put($asset['full'], $asset['contents']);
+            // publish files separately
+            $output .= $this->publishAsset($asset, $type);
 
-            // add the element
-            if ($type === 'styles') {
-                $output .= HTML::style($asset['link']);
-            } elseif ($type === 'scripts') {
-                $output .= HTML::script($asset['link']);
-            }
         }
 
-        echo $output;
+        // publish combined assets
+        if ($combine) {
+            return $this->publishCombined($combinedContents, $type);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Publish a combined asset
+     *
+     * @param  string $contents The combined assets contents
+     * @param  string $type     The assets type
+     * @return string           The link to the asset resource
+     */
+    protected function publishCombined($contents, $type)
+    {
+        if ($type === 'styles') {
+            $filename = $this->config->get('asset::combined_styles');
+        } elseif ($type === 'scripts') {
+            $filename = $this->config->get('asset::combined_scripts');
+        }
+
+        $assetData = $this->buildTargetPaths(
+            $filename,
+            null,
+            $type
+        );
+
+        $assetData['contents'] = $contents;
+
+        return $this->publishAsset($assetData, $type);
+    }
+
+    /**
+     * PUblish a single asset
+     *
+     * @param  array  $asset The asset data
+     * @param  string $type  The asset type
+     * @return string        The link to the asset resource
+     */
+    protected function publishAsset($asset, $type)
+    {
+        $output = '';
+
+        // prepare target directory
+        if ( ! file_exists(dirname($asset['full']))) {
+            File::makeDirectory(dirname($asset['full']), 0777, true);
+        }
+
+        // create the asset file
+        File::put($asset['full'], $asset['contents']);
+
+        // add the element
+        if ($type === 'styles') {
+            $output .= HTML::style($asset['link']);
+        } elseif ($type === 'scripts') {
+            $output .= HTML::script($asset['link']);
+        }
+
+        return $output;
     }
 }
