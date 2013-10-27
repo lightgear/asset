@@ -203,7 +203,6 @@ class Asset {
      * @return void
      */
     protected function compileLess($file) {
-        var_dump($file);
         $less = new lessc;
 
         return $less->compileFile($file->getRealPath());
