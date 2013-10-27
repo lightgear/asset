@@ -1,6 +1,6 @@
 {
     "name": "lightgear/asset",
-    "description": "",
+    "description": "Easy asset Management for Laravel 4",
     "authors": [
         {
             "name": "Donato Rotunno",
