@@ -57,7 +57,8 @@ class Asset {
     public function styles()
     {
         $this->processAssets($this->styles);
-        echo $this->publish('styles');
+
+        return $this->publish('styles');
     }
 
     /**
@@ -68,7 +69,20 @@ class Asset {
     public function scripts()
     {
         $this->processAssets($this->scripts);
-        echo $this->publish('scripts');
+
+        return $this->publish('scripts');
+    }
+
+    /**
+     * Delete published assets
+     *
+     * @return void
+     */
+    public function clean()
+    {
+        $assetsDir = public_path() . '/' . $this->config->get('asset::public_dir');
+
+        File::deleteDirectory($assetsDir, true);
     }
 
     /**
@@ -196,7 +210,7 @@ class Asset {
         // replace .less extension by .css
         $pathName = str_ireplace('.less', '.css', $pathName);
 
-        $link = '/assets/' . $type . '/';
+        $link = '/' . $this->config->get('asset::public_dir') . '/' . $type . '/';
 
         // add package segment, if any
         if ($package) {

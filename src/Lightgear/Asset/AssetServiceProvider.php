@@ -32,6 +32,19 @@ class AssetServiceProvider extends ServiceProvider {
 
 			return new Asset($app);
 		});
+
+		$this->app['asset.generate'] = $this->app->share(function($app)
+		{
+			return new Commands\Generate;
+		});
+
+		$this->app['asset.clean'] = $this->app->share(function($app)
+		{
+			return new Commands\Clean;
+		});
+
+		$this->commands('asset.generate');
+		$this->commands('asset.clean');
 	}
 
 	/**
