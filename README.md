@@ -3,9 +3,20 @@
 ## Overview
 The Lightgear/Asset package is meant to simplify the creation and maintenance of the essential assets of a Laravel 4 based application.
 
-### Supported asset types
+## Supported asset types
 Currently there is support for "**less**", "**css**"" and "**javascript**" files.
 I do NOT plan to add support for other types like Coffeescript simply because I want to keep the package footprint as small as possible.
+
+## Installation
+Just require
+```json
+"lightgear/asset": "dev-master"
+```
+in your composer.json
+and run
+```bash
+composer update
+```
 
 ## Usage
 All you need to do is register your assets with either **registerStyles()** or **registerScripts()** methods.
@@ -70,6 +81,22 @@ and
 php artisan asset:generate
 ```
 which generates and publishes the registered assets
+
+## Permissions
+If you experience permissions issues when running the above commands, it's because the user running artisan is different from the one that generates the assets through the webserver (www-data for example).
+The issue is explained in greater details at
+http://symfony.com/doc/current/book/installation.html#configuration-and-setup
+To fix the issue it's enough to follow the steps outlined in this page.
+For example on Ubuntu I run the following commands from the project root
+```bash
+sudo setfacl -R -m u:www-data:rwX -m u:`whoami`:rwX public/assets
+sudo setfacl -dR -m u:www-data:rwX -m u:`whoami`:rwX public/assets
+```
+When using caching, you would need to do the same
+```bash
+sudo setfacl -R -m u:www-data:rwX -m u:`whoami`:rwX app/storage
+sudo setfacl -dR -m u:www-data:rwX -m u:`whoami`:rwX app/storage
+```
 
 
  
