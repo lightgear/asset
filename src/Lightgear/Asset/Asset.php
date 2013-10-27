@@ -164,28 +164,9 @@ class Asset {
      * @return void
      */
     protected function compileLess($file) {
-
         $less = new lessc;
+
         return $less->compileFile($file->getRealPath());
-
-
-        // TODO: implement caching
-        // load the cache
-        $cacheFile = storage_path('cache/less') . $source.".cache";
-
-        if (file_exists($cacheFile)) {
-            $cache = unserialize(file_get_contents($cacheFile));
-        } else {
-            $cache = $source;
-        }
-
-        $less = new lessc;
-        $newCache = $less->cachedCompile($cache);
-
-        if (!is_array($cache) || $newCache["updated"] > $cache["updated"]) {
-            file_put_contents($cacheFile, serialize($newCache));
-            file_put_contents($target, $newCache['compiled']);
-        }
     }
 
     /**
