@@ -3,7 +3,8 @@
 use File,
     HTML,
     Str,
-    lessc;
+    lessc,
+    Symfony\Component\Finder\Finder;
 
 class Asset {
 
@@ -152,11 +153,12 @@ class Asset {
             if (File::isDirectory($fullPath)) {
                 return File::allFiles($fullPath);
             } elseif (File::isFile($fullPath)) {
-                return array(new \SplFileInfo($fullPath));
+                return Finder::create()
+                            ->depth(0)
+                            ->name(basename($fullPath))
+                            ->in(dirname($fullPath));
             }
         }
-
-        return null;
     }
 
     /**
@@ -190,7 +192,6 @@ class Asset {
         } else {
             $pathName = $file;
         }
-
 
         // replace .less extension by .css
         $pathName = str_ireplace('.less', '.css', $pathName);
