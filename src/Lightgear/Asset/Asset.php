@@ -238,12 +238,16 @@ class Asset {
         $output = '';
         $combinedContents = '';
         $combine = $this->config->get('asset::combine');
+        $minify = $this->config->get('asset::minify');
 
         foreach ($this->processed[$type] as $asset) {
 
-            // TODO: minify
+            // minify
+            if ($minify) {
+                $asset['contents'] = $this->minifyAsset($asset['contents'], $type);
+            }
 
-            // combine assets contents
+            // collect assets contents
             if ($combine) {
                 $combinedContents .= $asset['contents'];
                 continue;
@@ -315,5 +319,22 @@ class Asset {
         }
 
         return $output;
+    }
+
+    /**
+     * Minifies asset contents
+     *
+     * @param  string $contents The contents to minify
+     * @param  string $type     The type of the asset
+     * @return string           The minified contents
+     */
+    protected function minifyAsset($contents, $type)
+    {
+        if ($type === 'styles') {
+            $cssMin = new \CSSmin;
+            return $cssMin->run($contents);
+        } elseif ($type === 'scripts') {
+            return \JSMin::minify($contents);
+        }
     }
 }
