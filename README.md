@@ -22,7 +22,7 @@ Then register the service provider
 ```php
 'Lightgear\Asset\AssetServiceProvider'
 ```
-and, optionally, alias 
+and, optionally, the alias 
 ```php
 'Asset' => 'Lightgear\Asset\Facades\Asset'
 ```
@@ -43,19 +43,22 @@ For example, to register a package assets you would use something like this in y
 		$this->app->make('asset')
 			 ->registerStyles(array(
 					'src/assets/styles',
-			 	), 'vendor/package'
+			 	),
+			 	'vendor/package'
 			 )
 			 ->registerScripts(array(
 					'src/assets/scripts',
-			 	), 'vendor/package'
+			 	),
+			 	'vendor/package'
 			 )
 			 ->registerScripts(array(
 					'build/yui/yui-min.js',
-			 	), 'yui/yui3'
+			 	),
+			 	'yui/yui3'
 	    );
 	}
 ```
-or you can register an asset from **app/assets** (for instance from within a route closure) with
+or you can register assets located in **app/assets** (for instance from within a route closure) with
 ```php
 Asset::registerStyles(array(
         'css/shared.less'
