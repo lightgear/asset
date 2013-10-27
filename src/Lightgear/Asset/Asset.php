@@ -197,7 +197,7 @@ class Asset {
 
         $link = '/assets/' . $type . '/';
 
-        // add package segement, if any
+        // add package segment, if any
         if ($package) {
             $link .= $package . '/';
         }
