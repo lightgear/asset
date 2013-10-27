@@ -18,6 +18,16 @@ and run
 composer update
 ```
 
+Then register the service provider
+```php
+'Lightgear\Asset\AssetServiceProvider'
+```
+and, optionally, alias 
+```php
+'Asset' => 'Lightgear\Asset\Facades\Asset'
+```
+in **app/config/app.php**
+
 ## Usage
 All you need to do is register your assets with either **registerStyles()** or **registerScripts()** methods.
 For example, to register a package assets you would use something like this in your service provider:
@@ -45,7 +55,20 @@ For example, to register a package assets you would use something like this in y
 	    );
 	}
 ```
-As you notice in the example both files and directories can be registered.
+or you can register an asset from **app/assets** (for instance from within a route closure) with
+```php
+Asset::registerStyles(array(
+        'css/shared.less'
+    )
+);
+or
+Asset::registerScripts(array(
+        'js/shared.js'
+    )
+);
+```
+
+As you notice in the examples both files and directories can be registered.
 It's worth noticing that **directories are added recursively**.
 
 ## Configuration
