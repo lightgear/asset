@@ -6,6 +6,8 @@ return array(
         base_path() . '/vendor',
         base_path() . '/app/assets',
     ),
-    'combine' => false,
     'minify' => false,
+    'combine' => false,
+    'combined_styles' => 'application.css',
+    'combined_scripts' => 'application.js',
 );
