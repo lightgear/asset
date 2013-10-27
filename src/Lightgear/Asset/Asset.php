@@ -15,7 +15,10 @@ class Asset {
 
     protected $scripts = array();
 
-    protected $processed = array();
+    protected $processed = array(
+        'styles' => array(),
+        'scripts' => array()
+    );
 
     public function __construct($app)
     {
