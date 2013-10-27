@@ -149,10 +149,11 @@ class Asset {
                     switch ($file->getExtension()) {
                         case 'css':
                             $assetData['contents'] = file_get_contents($file->getRealPath());
+                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
+                            $this->processed['styles'][] = $assetData;
+                            break;
                         case 'less':
                             $assetData['contents'] = $this->compileLess($file);
-                        case 'css':
-                        case 'less':
                             $assetData += $this->buildTargetPaths($file, $package, 'styles');
                             $this->processed['styles'][] = $assetData;
                             break;
@@ -202,6 +203,7 @@ class Asset {
      * @return void
      */
     protected function compileLess($file) {
+        var_dump($file);
         $less = new lessc;
 
         return $less->compileFile($file->getRealPath());
