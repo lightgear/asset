@@ -2,6 +2,7 @@
 
 use File,
     HTML,
+    Str,
     lessc;
 
 class Asset {
@@ -107,7 +108,9 @@ class Asset {
 
                 foreach ($files as $file) {
 
-                    $assetData = array();
+                    $assetData = array(
+                        'is_minified' => $this->isMinified($file->getRealPath())
+                    );
 
                     switch ($file->getExtension()) {
                         case 'css':
@@ -223,8 +226,8 @@ class Asset {
 
         foreach ($this->processed[$type] as $asset) {
 
-            // minify
-            if ($minify) {
+            // minify, if the asset isn't yet
+            if ($minify && ( ! $asset['is_minified'])) {
                 $asset['contents'] = $this->minifyAsset($asset['contents'], $type);
             }
 
@@ -317,5 +320,24 @@ class Asset {
         } elseif ($type === 'scripts') {
             return \JSMin::minify($contents);
         }
+    }
+
+    /**
+     * Check if an asset is already minified
+     *
+     * @param  string  $fullpath The full path to the source file
+     * @return boolean
+     */
+    protected function isMinified($fullpath)
+    {
+        $filename = basename($fullpath);
+
+        foreach ($this->config->get('asset::minify_patterns') as $pattern) {
+            if (Str::contains($filename, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
