@@ -19,6 +19,5 @@
         "psr-0": {
             "Lightgear\\Asset": "src/"
         }
-    },
-    "minimum-stability": "dev"
+    }
 }
