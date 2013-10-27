@@ -45,4 +45,9 @@ return array(
      * The filename of the combined scripts.
      */
     'combined_scripts' => 'application.js',
+
+    /**
+     * Turn on/off assets caching.
+     */
+    'use_cache' => false,
 );

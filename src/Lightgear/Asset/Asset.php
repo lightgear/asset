@@ -3,6 +3,7 @@
 use File,
     HTML,
     Str,
+    Cache,
     lessc,
     Symfony\Component\Finder\Finder;
 
@@ -56,6 +57,12 @@ class Asset {
      */
     public function styles()
     {
+        // use cached resources, if available
+        if (Cache::has('asset.styles'))
+        {
+            return Cache::get('asset.styles');
+        }
+
         $this->processAssets($this->styles);
 
         return $this->publish('styles');
@@ -68,6 +75,12 @@ class Asset {
      */
     public function scripts()
     {
+        // use cached resources, if available
+        if (Cache::has('asset.scripts'))
+        {
+            return Cache::get('asset.scripts');
+        }
+
         $this->processAssets($this->scripts);
 
         return $this->publish('scripts');
@@ -83,6 +96,9 @@ class Asset {
         $assetsDir = public_path() . '/' . $this->config->get('asset::public_dir');
 
         File::deleteDirectory($assetsDir, true);
+
+        Cache::forget('asset.styles');
+        Cache::forget('asset.scripts');
     }
 
     /**
@@ -238,6 +254,7 @@ class Asset {
         $combinedContents = '';
         $combine = $this->config->get('asset::combine');
         $minify = $this->config->get('asset::minify');
+        $useCache = $this->config->get('asset::use_cache');
 
         foreach ($this->processed[$type] as $asset) {
 
@@ -259,7 +276,12 @@ class Asset {
 
         // publish combined assets
         if ($combine) {
-            return $this->publishCombined($combinedContents, $type);
+            $output .= $this->publishCombined($combinedContents, $type);
+        }
+
+        // cache asset resurce
+        if ($useCache) {
+            Cache::add('asset.' . $type, $output, 14400);
         }
 
         return $output;
