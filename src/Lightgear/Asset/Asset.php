@@ -118,7 +118,7 @@ class Asset {
             $this->{$type}[$package] = array();
         }
 
-        $this->{$type}[$package] = array_merge($this->{$type}[$package], $assets);
+        $this->{$type}[$package] = array_unique(array_merge($this->{$type}[$package], $assets));
     }
 
     /**
