@@ -3,12 +3,13 @@
 return array(
 
     /**
-     * The paths where the assets will be searched in.
+     * The paths where the assets will be searched in,
+     * relative to the project root
      */
-    'base_paths' => array(
-        base_path() . '/workbench',
-        base_path() . '/vendor',
-        base_path() . '/app/assets',
+    'search_paths' => array(
+        '/workbench',
+        '/vendor',
+        '/app/assets',
     ),
 
     /**

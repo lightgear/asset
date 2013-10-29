@@ -180,9 +180,9 @@ class Asset {
      */
     protected function findAssets($path, $package)
     {
-        foreach ($this->config->get('asset::base_paths') as $basePath) {
+        foreach ($this->config->get('asset::search_paths') as $searchPath) {
 
-            $fullPath = $basePath . '/'. $package . '/' . $path;
+            $fullPath = base_path() . $searchPath . '/'. $package . '/' . $path;
 
             if (File::isDirectory($fullPath)) {
                 return File::allFiles($fullPath);
