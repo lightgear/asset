@@ -28,8 +28,11 @@ and, optionally, the alias
 ```
 in **app/config/app.php**
 
+Finally create the directory specified as "public_dir" in the config file and give it full writing permissions.
+
 ## Usage
 All you need to do is register your assets with either **registerStyles()** or **registerScripts()** methods.
+Important: assets need to be registered **in a file which is always loaded** (ex. in a package's ServiceProvider).
 For example, to register a package assets you would use something like this in your service provider:
 
 ```php
@@ -58,7 +61,7 @@ For example, to register a package assets you would use something like this in y
 	    );
 	}
 ```
-or you can register assets located in **app/assets** (for instance from within a route closure) with
+or you could register assets located in **app/assets** with
 ```php
 Asset::registerStyles(array(
         'css/shared.less'
