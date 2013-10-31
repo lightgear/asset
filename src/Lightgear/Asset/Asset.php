@@ -9,6 +9,8 @@ use File,
 
 class Asset {
 
+    protected $paths = array();
+
     protected $config = array();
 
     protected $styles = array();
@@ -87,6 +89,16 @@ class Asset {
         $this->processAssets($this->scripts);
 
         return $this->publish('scripts');
+    }
+
+    /**
+     * Adds a new search path
+     *
+     * @param string $path The path to add
+     */
+    public function addPath($path)
+    {
+        $this->paths[] = $path;
     }
 
     /**
@@ -180,7 +192,9 @@ class Asset {
      */
     protected function findAssets($path, $package)
     {
-        foreach ($this->config->get('asset::search_paths') as $searchPath) {
+        $paths = array_merge($this->paths, $this->config->get('asset::search_paths'));
+
+        foreach ($paths as $searchPath) {
 
             $fullPath = base_path() . $searchPath . '/'. $package . '/' . $path;
 
