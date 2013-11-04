@@ -316,7 +316,7 @@ class Asset {
 
         // cache asset resurce
         if ($useCache) {
-            Cache::add('asset.' . $type . '.groups.' . $group, $output, 14400);
+            Cache::forever('asset.' . $type . '.groups.' . $group, $output);
         }
 
         return $output;
@@ -368,7 +368,7 @@ class Asset {
         File::put($asset['full'], $asset['contents']);
 
         // add the element
-        $link = $asset['link'] . '?' . '123456789';  // TODO: use right random 
+        $link = $asset['link'] . '?' . str_random(10);
         if ($type === 'styles') {
             $output .= HTML::style($link);
         } elseif ($type === 'scripts') {
