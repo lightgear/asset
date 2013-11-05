@@ -3,11 +3,23 @@
 ## Overview
 The Lightgear/Asset package is meant to simplify the creation and maintenance of the essential assets of a Laravel 4 based application.
 
-## Supported asset types
-Currently there is support for "**less**", "**css**"" and "**javascript**" files.
+## Features
+
+* **Supported asset types**: "**less**", "**css**"" and "**javascript**" files.
 I do NOT plan to add support for other types like Coffeescript simply because I want to keep the package footprint as small as possible.
+* **Combining and minifying** (any combination of the two) are fully supported
+* Simple but effective **caching** support is provided.
+This avoids generation of the assets on every request.
+Caching needs to be turned on in the config (since you probably only want to do this on production).
+* **Asset groups**
 
 ## Installation
+
+### Via Laravel 4 Package Installer
+```bash
+php artisan package:install lightgear/asset
+```
+### Manual
 Just require
 ```json
 "lightgear/asset": "dev-master"
@@ -17,7 +29,6 @@ and run
 ```bash
 composer update
 ```
-
 Then register the service provider
 ```php
 'Lightgear\Asset\AssetServiceProvider'
@@ -43,22 +54,23 @@ For example, to register a package assets you would use something like this in y
 	 */
 	public function register()
 	{
-		$this->app->make('asset')
-			 ->registerStyles(array(
-					'src/assets/styles',
-			 	),
-			 	'vendor/package'
-			 )
-			 ->registerScripts(array(
-					'src/assets/scripts',
-			 	),
-			 	'vendor/package'
-			 )
-			 ->registerScripts(array(
-					'build/yui/yui-min.js',
-			 	),
-			 	'yui/yui3'
+	    $styles = array(
+	        'src/assets/styles',
+	        'src/assets/pure/pure/pure-min.css'
 	    );
+
+		$asset = $this->app->make('asset');
+
+        // register styles of a vendor package and assign them
+        // to the default "general" group
+        $asset->registerStyles($styles, 'vendor/package');
+
+        // register styles of a vendor package and assign them
+        // to the "frontend" group
+        $asset->registerStyles($styles, 'vendor/package', 'frontend');
+
+        // the same goes with scripts for whom you would use for example
+        $asset->registerScripts(array('src/scripts')), 'vendor/package');
 	}
 ```
 or you could register assets located in **app/assets** with
@@ -81,20 +93,20 @@ It's worth noticing that **directories are added recursively**.
 A number of config options allow you to customize the handling of the assets.
 Please check **src/config/config.php** for details.
 
-## Combining and minifying
-Both are fully supported
-
-## Caching
-Simple caching support is provided.
-This avoids generation of the assets on every request.
-Caching needs to be turned on in the config (since you probably only want to do this on production).
-
 ## Templating
 The assets can be printed out in a (blade) template by using
 ```php
+// prints all the registered styles
 {{ Asset::styles() }}
+
+// prints only the "frontend" group
+{{ Asset::styles('frontend') }}
+
+// prints the "frontend" and "mygroup" groups
+{{ Asset::styles(array('frontend', 'mygroup')) }}
+
 ```
-and
+and the same syntax is used for the scripts
 ```php
 {{ Asset::scripts() }}
 ```
@@ -127,5 +139,7 @@ sudo setfacl -R -m u:www-data:rwX -m u:`whoami`:rwX app/storage
 sudo setfacl -dR -m u:www-data:rwX -m u:`whoami`:rwX app/storage
 ```
 
-
+## Changelog
+1.0: add support for asset groups and improve cache handling  
+0.8: initial release
  
