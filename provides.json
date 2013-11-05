@@ -1,0 +1,11 @@
+{
+  "providers": [
+    "Lightgear\Asset\AssetServiceProvider"
+  ],
+  "aliases": [
+    {
+      "alias": "Asset",
+      "facade": "Lightgear\Asset\Facades\Asset"
+    }
+  ]
+}
