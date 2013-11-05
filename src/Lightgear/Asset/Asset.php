@@ -1,11 +1,11 @@
 <?php namespace Lightgear\Asset;
 
-use File,
-    HTML,
-    Str,
-    Cache,
-    lessc,
-    Symfony\Component\Finder\Finder;
+use Illuminate\Support\Facades\File,
+    Illuminate\Support\Facades\HTML,
+    Illuminate\Support\Str,
+    Illuminate\Support\Facades\Cache,
+    Symfony\Component\Finder\Finder,
+    lessc;
 
 class Asset {
 
@@ -32,6 +32,7 @@ class Asset {
      *
      * @param  array  $assets  The styles to register
      * @param  string $package The package the styles belong to
+     * @param  string $group   The group the styles belong to
      * @return Asset           This class instance
      */
     public function registerStyles($assets, $package = '', $group = 'general')
@@ -46,6 +47,7 @@ class Asset {
      *
      * @param  array  $assets  The scripts to register
      * @param  string $package The package the scripts belong to
+     * @param  string $group   The group the styles belong to
      * @return Asset           This class instance
      */
     public function registerScripts($assets, $package = '', $group = 'general')
@@ -58,6 +60,7 @@ class Asset {
     /**
      * Render styles assets
      *
+     * @param array $groups The groups to render
      * @return void
      */
     public function styles($groups = array())
@@ -68,6 +71,7 @@ class Asset {
     /**
      * Render scripts assets
      *
+     * @param array $groups The groups to render
      * @return void
      */
     public function scripts($groups = array())
@@ -105,6 +109,13 @@ class Asset {
         }
     }
 
+    /**
+     * Render the assets
+     *
+     * @param  array|string $groups The groups to render
+     * @param  string       $type   The assets type
+     * @return string       The assets resurces
+     */
     protected function renderAssets($groups, $type)
     {
         $groups = (array) $groups;
@@ -138,6 +149,7 @@ class Asset {
      * @param  array  $assets  The assets to register
      * @param  string $type    The type of the assets: styles or scripts
      * @param  string $package The package the assets belong to
+     * @param  string $group   The group the assets belong to
      * @return void
      */
     protected function registerAssets($assets, $type, $package, $group)
@@ -152,7 +164,8 @@ class Asset {
     /**
      * Process an assets collection
      *
-     * @param  array $assets The assets to process
+     * @param  array  $assets The assets to process
+     * @param  string $group  The assets group to process
      * @return void
      */
     protected function processAssets($assets, $group)
@@ -281,7 +294,8 @@ class Asset {
      * Publish a collection of processed assets
      *
      * @param  string $type   The colleciton type to publish
-     * @return void
+     * @param  string $group  The group to publish
+     * @return string $output The assets resource
      */
     protected function publish($type, $group)
     {
