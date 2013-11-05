@@ -1,11 +1,11 @@
 <?php namespace Lightgear\Asset;
 
-use File,
-    HTML,
-    Str,
-    Cache,
-    lessc,
-    Symfony\Component\Finder\Finder;
+use Illuminate\Support\Facades\File,
+    Illuminate\Support\Facades\HTML,
+    Illuminate\Support\Str,
+    Illuminate\Support\Facades\Cache,
+    Symfony\Component\Finder\Finder,
+    lessc;
 
 class Asset {
 
@@ -32,11 +32,12 @@ class Asset {
      *
      * @param  array  $assets  The styles to register
      * @param  string $package The package the styles belong to
+     * @param  string $group   The group the styles belong to
      * @return Asset           This class instance
      */
-    public function registerStyles($assets, $package = '')
+    public function registerStyles($assets, $package = '', $group = 'general')
     {
-        $this->registerAssets($assets, 'styles', $package);
+        $this->registerAssets($assets, 'styles', $package, $group);
 
         return $this;
     }
@@ -46,11 +47,12 @@ class Asset {
      *
      * @param  array  $assets  The scripts to register
      * @param  string $package The package the scripts belong to
+     * @param  string $group   The group the styles belong to
      * @return Asset           This class instance
      */
-    public function registerScripts($assets, $package = '')
+    public function registerScripts($assets, $package = '', $group = 'general')
     {
-        $this->registerAssets($assets, 'scripts', $package);
+        $this->registerAssets($assets, 'scripts', $package, $group);
 
         return $this;
     }
@@ -58,37 +60,23 @@ class Asset {
     /**
      * Render styles assets
      *
+     * @param array $groups The groups to render
      * @return void
      */
-    public function styles()
+    public function styles($groups = array())
     {
-        // use cached resources, if available
-        if (Cache::has('asset.styles'))
-        {
-            return Cache::get('asset.styles');
-        }
-
-        $this->processAssets($this->styles);
-
-        return $this->publish('styles');
+        return $this->renderAssets($groups, 'styles');
     }
 
     /**
      * Render scripts assets
      *
+     * @param array $groups The groups to render
      * @return void
      */
-    public function scripts()
+    public function scripts($groups = array())
     {
-        // use cached resources, if available
-        if (Cache::has('asset.scripts'))
-        {
-            return Cache::get('asset.scripts');
-        }
-
-        $this->processAssets($this->scripts);
-
-        return $this->publish('scripts');
+        return $this->renderAssets($groups, 'scripts');
     }
 
     /**
@@ -112,8 +100,47 @@ class Asset {
 
         File::deleteDirectory($assetsDir, true);
 
-        Cache::forget('asset.styles');
-        Cache::forget('asset.scripts');
+        foreach ($this->getGroupNames('styles') as $group) {
+            Cache::forget('asset.styles.groups.' . $group);
+        }
+
+        foreach ($this->getGroupNames('scripts') as $group) {
+            Cache::forget('asset.scripts.groups.' . $group);
+        }
+    }
+
+    /**
+     * Render the assets
+     *
+     * @param  array|string $groups The groups to render
+     * @param  string       $type   The assets type
+     * @return string       The assets resurces
+     */
+    protected function renderAssets($groups, $type)
+    {
+        $groups = (array) $groups;
+
+        if (empty($groups)) {
+            $groups = $this->getGroupNames($type);
+        }
+
+        $output = '';
+
+        foreach ($groups as $group) {
+
+            // use cached resources, if available
+            $cacheKey = 'asset.' . $type . '.groups.' . $group;
+            if (Cache::has($cacheKey))
+            {
+                $output .= Cache::get($cacheKey);
+            } else {
+                $this->processAssets($this->{$type}[$group], $group);
+                $output .= $this->publish($type, $group);
+            }
+
+        }
+
+        return $output;
     }
 
     /**
@@ -122,24 +149,26 @@ class Asset {
      * @param  array  $assets  The assets to register
      * @param  string $type    The type of the assets: styles or scripts
      * @param  string $package The package the assets belong to
+     * @param  string $group   The group the assets belong to
      * @return void
      */
-    protected function registerAssets($assets, $type, $package)
+    protected function registerAssets($assets, $type, $package, $group)
     {
-        if ( ! isset($this->{$type}[$package])) {
-            $this->{$type}[$package] = array();
+        if ( ! isset($this->{$type}[$group][$package])) {
+            $this->{$type}[$group][$package] = array();
         }
 
-        $this->{$type}[$package] = array_unique(array_merge($this->{$type}[$package], $assets));
+        $this->{$type}[$group][$package] = array_unique(array_merge($this->{$type}[$group][$package], $assets));
     }
 
     /**
      * Process an assets collection
      *
-     * @param  array $assets The assets to process
+     * @param  array  $assets The assets to process
+     * @param  string $group  The assets group to process
      * @return void
      */
-    protected function processAssets($assets)
+    protected function processAssets($assets, $group)
     {
         foreach ($assets as $package => $paths) {
 
@@ -162,17 +191,17 @@ class Asset {
                         case 'css':
                             $assetData['contents'] = file_get_contents($file->getRealPath());
                             $assetData += $this->buildTargetPaths($file, $package, 'styles');
-                            $this->processed['styles'][] = $assetData;
+                            $this->processed['styles'][$group][] = $assetData;
                             break;
                         case 'less':
                             $assetData['contents'] = $this->compileLess($file);
                             $assetData += $this->buildTargetPaths($file, $package, 'styles');
-                            $this->processed['styles'][] = $assetData;
+                            $this->processed['styles'][$group][] = $assetData;
                             break;
                         case 'js':
                             $assetData['contents'] = file_get_contents($file->getRealPath());
                             $assetData += $this->buildTargetPaths($file, $package, 'scripts');
-                            $this->processed['scripts'][] = $assetData;
+                            $this->processed['scripts'][$group][] = $assetData;
                             break;
                         default:
                             break;
@@ -181,6 +210,7 @@ class Asset {
             }
         }
     }
+
 
     /**
      * Search for the assets in the passed path
@@ -264,9 +294,10 @@ class Asset {
      * Publish a collection of processed assets
      *
      * @param  string $type   The colleciton type to publish
-     * @return void
+     * @param  string $group  The group to publish
+     * @return string $output The assets resource
      */
-    protected function publish($type)
+    protected function publish($type, $group)
     {
         $output = '';
         $combinedContents = '';
@@ -274,7 +305,7 @@ class Asset {
         $minify = $this->config->get('asset::minify');
         $useCache = $this->config->get('asset::use_cache');
 
-        foreach ($this->processed[$type] as $asset) {
+        foreach ($this->processed[$type][$group] as $asset) {
 
             // minify, if the asset isn't yet
             if ($minify && ( ! $asset['is_minified'])) {
@@ -299,7 +330,7 @@ class Asset {
 
         // cache asset resurce
         if ($useCache) {
-            Cache::add('asset.' . $type, $output, 14400);
+            Cache::forever('asset.' . $type . '.groups.' . $group, $output);
         }
 
         return $output;
@@ -351,10 +382,11 @@ class Asset {
         File::put($asset['full'], $asset['contents']);
 
         // add the element
+        $link = $asset['link'] . '?' . str_random(10);
         if ($type === 'styles') {
-            $output .= HTML::style($asset['link']);
+            $output .= HTML::style($link);
         } elseif ($type === 'scripts') {
-            $output .= HTML::script($asset['link']);
+            $output .= HTML::script($link);
         }
 
         return $output;
@@ -394,5 +426,16 @@ class Asset {
         }
 
         return false;
+    }
+
+    /**
+     * Gets the registered groups for a specific type
+     *
+     * @param  string $type The assets type
+     * @return array        The group names
+     */
+    protected function getGroupNames($type)
+    {
+        return array_keys($this->{$type});
     }
 }
