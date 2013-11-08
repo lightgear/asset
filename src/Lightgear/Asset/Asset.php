@@ -305,6 +305,11 @@ class Asset {
         $minify = $this->config->get('asset::minify');
         $useCache = $this->config->get('asset::use_cache');
 
+        // no assets to publish, stop here!
+        if ( ! isset($this->processed[$type][$group])) {
+            return;
+        }
+
         foreach ($this->processed[$type][$group] as $asset) {
 
             // minify, if the asset isn't yet
