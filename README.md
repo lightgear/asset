@@ -22,7 +22,7 @@ php artisan package:install lightgear/asset
 ### Manual
 Just require
 ```json
-"lightgear/asset": "dev-master"
+"lightgear/asset": "1.1"
 ```
 in your composer.json
 and run
@@ -38,6 +38,12 @@ and, optionally, the alias
 'Asset' => 'Lightgear\Asset\Facades\Asset'
 ```
 in **app/config/app.php**
+
+Publish configuration with
+```bash
+php artisan config:publish lightgear/asset
+```
+This will ceate the **app/config/packages/lightgear/asset/config.php** file.
 
 Finally create the directory specified as "public_dir" in the config file and give it full writing permissions.
 
