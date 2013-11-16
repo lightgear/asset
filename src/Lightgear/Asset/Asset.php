@@ -98,7 +98,9 @@ class Asset {
     {
         $assetsDir = public_path() . '/' . $this->config->get('asset::public_dir');
 
-        File::deleteDirectory($assetsDir, true);
+        foreach (array_keys($this->processed) as $typeDir) {
+            File::deleteDirectory($assetsDir . '/' . $typeDir);
+        }
 
         foreach ($this->getGroupNames('styles') as $group) {
             Cache::forget('asset.styles.groups.' . $group);
