@@ -130,7 +130,7 @@ class Asset {
 
             // use cached resources, if available
             $cacheKey = 'asset.' . $type . '.groups.' . $group;
-            if (Cache::has($cacheKey))
+            if ($this->config->get('asset::use_cache') && Cache::has($cacheKey))
             {
                 $output .= Cache::get($cacheKey);
             } else {
@@ -334,8 +334,12 @@ class Asset {
         }
 
         // cache asset resurce
+        $cacheKey = 'asset.' . $type . '.groups.' . $group;
+
         if ($useCache) {
-            Cache::forever('asset.' . $type . '.groups.' . $group, $output);
+            Cache::forever($cacheKey, $output);
+        } elseif (Cache::has($cacheKey)) {
+            $this->clean();
         }
 
         return $output;
