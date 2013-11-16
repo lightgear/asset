@@ -146,7 +146,7 @@ sudo setfacl -dR -m u:www-data:rwX -m u:`whoami`:rwX app/storage
 ```
 
 ## Changelog
-1.1: Laravel 4.1 compatibility
+1.1: Laravel 4.1 compatibility  
 1.0: add support for asset groups and improve cache handling  
 0.8: initial release
  
