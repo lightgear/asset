@@ -144,9 +144,8 @@ class Asset {
             $filesData = $this->findAssets($path);
 
             // skip not found assets
-            // TODO: add exception
             if ( ! $filesData) {
-                continue;
+                throw new \Exception("No assets found for the path: " . $path, 1);
             }
 
             foreach ($filesData['files'] as $file) {
@@ -159,22 +158,22 @@ class Asset {
                     case 'css':
                         $assetData['contents'] = file_get_contents($file->getRealPath());
                         $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
-                        $this->processed['styles'][$group][] = $assetData;
+                        $this->processed['styles'][$group][$assetData['link']] = $assetData;
                         break;
                     case 'less':
                         $assetData['contents'] = $this->compileLess($file);
                         $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
-                        $this->processed['styles'][$group][] = $assetData;
+                        $this->processed['styles'][$group][$assetData['link']] = $assetData;
                         break;
                     case 'js':
                         $assetData['contents'] = file_get_contents($file->getRealPath());
                         $assetData += $this->buildTargetPaths($file, 'scripts', $filesData['search_path']);
-                        $this->processed['scripts'][$group][] = $assetData;
+                        $this->processed['scripts'][$group][$assetData['link']] = $assetData;
                         break;
                     default:
                         $assetData['src'] = $file->getRealPath();
                         $assetData += $this->buildTargetPaths($file, 'static', $filesData['search_path']);
-                        $this->processed['static'][$group][] = $assetData;
+                        $this->processed['static'][$group][$assetData['link']] = $assetData;
                         break;
                 }
             }
@@ -380,7 +379,7 @@ class Asset {
         // create the asset file
         File::put($asset['target'], $asset['contents']);
 
-        // add the element
+        // add the HTML element
         $link = $asset['link'] . '?' . str_random(10);
         if ($type === 'styles') {
             $output .= HTML::style($link);
