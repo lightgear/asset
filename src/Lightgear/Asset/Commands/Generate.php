@@ -30,6 +30,7 @@ class Generate extends Command {
         $asset = \App::make('asset');
         $asset->styles();
         $asset->scripts();
+        $asset->statics();
 
         $this->line('Generated and published assets');
     }
