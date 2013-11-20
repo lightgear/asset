@@ -13,13 +13,12 @@ class Asset {
 
     protected $config = array();
 
-    protected $styles = array();
-
-    protected $scripts = array();
+    protected $registered = array();
 
     protected $processed = array(
         'styles' => array(),
-        'scripts' => array()
+        'scripts' => array(),
+        'static' => array()
     );
 
     public function __construct($app)
@@ -27,32 +26,13 @@ class Asset {
         $this->config = $app['config'];
     }
 
-    /**
-     * Register a styles collection
-     *
-     * @param  array  $assets  The styles to register
-     * @param  string $package The package the styles belong to
-     * @param  string $group   The group the styles belong to
-     * @return Asset           This class instance
-     */
-    public function registerStyles($assets, $package = '', $group = 'general')
+    public function register($assets, $group = 'general')
     {
-        $this->registerAssets($assets, 'styles', $package, $group);
+        if ( ! isset($this->registered[$group])) {
+            $this->registered[$group] = array();
+        }
 
-        return $this;
-    }
-
-    /**
-     * Register a scripts collection
-     *
-     * @param  array  $assets  The scripts to register
-     * @param  string $package The package the scripts belong to
-     * @param  string $group   The group the styles belong to
-     * @return Asset           This class instance
-     */
-    public function registerScripts($assets, $package = '', $group = 'general')
-    {
-        $this->registerAssets($assets, 'scripts', $package, $group);
+        $this->registered[$group] = array_unique(array_merge($this->registered[$group], $assets));
 
         return $this;
     }
@@ -77,6 +57,11 @@ class Asset {
     public function scripts($groups = array())
     {
         return $this->renderAssets($groups, 'scripts');
+    }
+
+    public function statics($groups = array())
+    {
+        return $this->renderAssets($groups, 'static');
     }
 
     /**
@@ -123,7 +108,7 @@ class Asset {
         $groups = (array) $groups;
 
         if (empty($groups)) {
-            $groups = $this->getGroupNames($type);
+            $groups = $this->getGroupNames();
         }
 
         $output = '';
@@ -136,7 +121,7 @@ class Asset {
             {
                 $output .= Cache::get($cacheKey);
             } else {
-                $this->processAssets($this->{$type}[$group], $group);
+                $this->processAssets($this->registered[$group], $type, $group);
                 $output .= $this->publish($type, $group);
             }
 
@@ -146,68 +131,51 @@ class Asset {
     }
 
     /**
-     * Register an asset collection
-     *
-     * @param  array  $assets  The assets to register
-     * @param  string $type    The type of the assets: styles or scripts
-     * @param  string $package The package the assets belong to
-     * @param  string $group   The group the assets belong to
-     * @return void
-     */
-    protected function registerAssets($assets, $type, $package, $group)
-    {
-        if ( ! isset($this->{$type}[$group][$package])) {
-            $this->{$type}[$group][$package] = array();
-        }
-
-        $this->{$type}[$group][$package] = array_unique(array_merge($this->{$type}[$group][$package], $assets));
-    }
-
-    /**
      * Process an assets collection
      *
      * @param  array  $assets The assets to process
      * @param  string $group  The assets group to process
      * @return void
      */
-    protected function processAssets($assets, $group)
+    protected function processAssets($assets, $type, $group)
     {
-        foreach ($assets as $package => $paths) {
+        foreach ($assets as $path) {
 
-            foreach ($paths as $path) {
+            $filesData = $this->findAssets($path);
 
-                $files = $this->findAssets($path, $package);
+            // skip not found assets
+            // TODO: add exception
+            if ( ! $filesData) {
+                continue;
+            }
 
-                // skip not found assets
-                if ( ! $files) {
-                    continue;
-                }
+            foreach ($filesData['files'] as $file) {
 
-                foreach ($files as $file) {
+                $assetData = array(
+                    'is_minified' => $this->isMinified($file->getRealPath())
+                );
 
-                    $assetData = array(
-                        'is_minified' => $this->isMinified($file->getRealPath())
-                    );
-
-                    switch ($file->getExtension()) {
-                        case 'css':
-                            $assetData['contents'] = file_get_contents($file->getRealPath());
-                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
-                            $this->processed['styles'][$group][] = $assetData;
-                            break;
-                        case 'less':
-                            $assetData['contents'] = $this->compileLess($file);
-                            $assetData += $this->buildTargetPaths($file, $package, 'styles');
-                            $this->processed['styles'][$group][] = $assetData;
-                            break;
-                        case 'js':
-                            $assetData['contents'] = file_get_contents($file->getRealPath());
-                            $assetData += $this->buildTargetPaths($file, $package, 'scripts');
-                            $this->processed['scripts'][$group][] = $assetData;
-                            break;
-                        default:
-                            break;
-                    }
+                switch ($file->getExtension()) {
+                    case 'css':
+                        $assetData['contents'] = file_get_contents($file->getRealPath());
+                        $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
+                        $this->processed['styles'][$group][] = $assetData;
+                        break;
+                    case 'less':
+                        $assetData['contents'] = $this->compileLess($file);
+                        $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
+                        $this->processed['styles'][$group][] = $assetData;
+                        break;
+                    case 'js':
+                        $assetData['contents'] = file_get_contents($file->getRealPath());
+                        $assetData += $this->buildTargetPaths($file, 'scripts', $filesData['search_path']);
+                        $this->processed['scripts'][$group][] = $assetData;
+                        break;
+                    default:
+                        $assetData['src'] = $file->getRealPath();
+                        $assetData += $this->buildTargetPaths($file, 'static', $filesData['search_path']);
+                        $this->processed['static'][$group][] = $assetData;
+                        break;
                 }
             }
         }
@@ -219,24 +187,31 @@ class Asset {
      * taking into account configured base paths (workbench, vendor, etc)
      *
      * @param  string $path    The path to search
-     * @param  string $package The package the assets belong to
      * @return array|null      The array of SplFileInfo objects or null
      */
-    protected function findAssets($path, $package)
+    protected function findAssets($path)
     {
         $paths = array_merge($this->paths, $this->config->get('asset::search_paths'));
 
         foreach ($paths as $searchPath) {
 
-            $fullPath = base_path() . $searchPath . '/'. $package . '/' . $path;
+            $fullSearcPath = base_path() . $searchPath . '/';
+
+            $fullPath = $fullSearcPath . $path;
 
             if (File::isDirectory($fullPath)) {
-                return File::allFiles($fullPath);
+                return array(
+                    'search_path' => $fullSearcPath,
+                    'files' => File::allFiles($fullPath),
+                );
             } elseif (File::isFile($fullPath)) {
-                return Finder::create()
-                            ->depth(0)
-                            ->name(basename($fullPath))
-                            ->in(dirname($fullPath));
+                return array(
+                    'search_path' => $fullSearcPath,
+                    'files' => Finder::create()
+                                ->depth(0)
+                                ->name(basename($fullPath))
+                                ->in(dirname($fullPath)),
+                );
             }
         }
     }
@@ -257,37 +232,32 @@ class Asset {
     /**
      * Builds the target paths array.
      * The 'link' ready to be used as asset url
-     * and 'full' suitable for file creation.
+     * and 'target' suitable for file creation.
      *
      * @param  Symfony\Component\Finder\SplFileInfo|string $file
      *         The file object or the filename
-     * @param  string $package The package where the asset belongs to
      * @param  string $type    The assets type
      * @return array           The target paths array
      */
-    protected function buildTargetPaths($file, $package, $type)
+    protected function buildTargetPaths($file, $type, $searchPath)
     {
         if ($file instanceof \Symfony\Component\Finder\SplFileInfo) {
-            $pathName = $file->getRelativePathname();
+            $pathName = $file->getBaseName();
         } else {
             $pathName = $file;
         }
+
+        $package = $this->getPackageName($file->getRealPath(), $searchPath);
 
         // replace .less extension by .css
         $pathName = str_ireplace('.less', '.css', $pathName);
 
         $link = '/' . $this->config->get('asset::public_dir') . '/' . $type . '/';
-
-        // add package segment, if any
-        if ($package) {
-            $link .= $package . '/';
-        }
-
-        $link .= $pathName;
+        $link .= $package . '/' . $pathName;
 
         return array(
             'link' => $link,
-            'full' => public_path() . $link
+            'target' => public_path() . $link
         );
 
     }
@@ -312,7 +282,14 @@ class Asset {
             return;
         }
 
+
         foreach ($this->processed[$type][$group] as $asset) {
+
+            // publish static assets right away
+            if ($type === 'static') {
+                $this->publishStatic($asset);
+                continue;
+            }
 
             // minify, if the asset isn't yet
             if ($minify && ( ! $asset['is_minified'])) {
@@ -327,7 +304,6 @@ class Asset {
 
             // publish files separately
             $output .= $this->publishAsset($asset, $type);
-
         }
 
         // publish combined assets
@@ -373,6 +349,20 @@ class Asset {
         return $this->publishAsset($assetData, $type);
     }
 
+    protected function publishStatic($asset)
+    {
+        $this->prepareAssetDirectory($asset['target']);
+
+        return File::copy($asset['src'], $asset['target']);
+    }
+
+    protected function prepareAssetDirectory($path)
+    {
+        if ( ! file_exists(dirname($path))) {
+            File::makeDirectory(dirname($path), 0777, true);
+        }
+    }
+
     /**
      * PUblish a single asset
      *
@@ -385,12 +375,10 @@ class Asset {
         $output = '';
 
         // prepare target directory
-        if ( ! file_exists(dirname($asset['full']))) {
-            File::makeDirectory(dirname($asset['full']), 0777, true);
-        }
+        $this->prepareAssetDirectory($asset['target']);
 
         // create the asset file
-        File::put($asset['full'], $asset['contents']);
+        File::put($asset['target'], $asset['contents']);
 
         // add the element
         $link = $asset['link'] . '?' . str_random(10);
@@ -445,8 +433,17 @@ class Asset {
      * @param  string $type The assets type
      * @return array        The group names
      */
-    protected function getGroupNames($type)
+    protected function getGroupNames()
     {
-        return array_keys($this->{$type});
+        return array_keys($this->registered);
+    }
+
+    protected function getPackageName($path, $searchPath)
+    {
+        $path = str_ireplace($searchPath, '', $path);
+
+        $pathSegments = explode('/', $path);
+
+        return $pathSegments[0] . '/' . $pathSegments[1];
     }
 }
