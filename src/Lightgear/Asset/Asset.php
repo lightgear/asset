@@ -26,13 +26,21 @@ class Asset {
         $this->config = $app['config'];
     }
 
-    public function register($assets, $group = 'general')
+    public function register($assets, $options = array())
     {
-        if ( ! isset($this->registered[$group])) {
-            $this->registered[$group] = array();
-        }
+        // merge passed options with defaults
+        $options = array_merge(
+            array(
+                'group' => 'general',
+                'link_resource' => true
+            ),
+            $options
+        );
 
-        $this->registered[$group] = array_unique(array_merge($this->registered[$group], $assets));
+        // assing assets to group
+        foreach ($assets as $asset) {
+            $this->registered[$options['group']][$asset] = $options;
+        }
 
         return $this;
     }
@@ -94,6 +102,10 @@ class Asset {
         foreach ($this->getGroupNames('scripts') as $group) {
             Cache::forget('asset.scripts.groups.' . $group);
         }
+
+        foreach ($this->getGroupNames('static') as $group) {
+            Cache::forget('asset.static.groups.' . $group);
+        }
     }
 
     /**
@@ -117,6 +129,7 @@ class Asset {
 
             // use cached resources, if available
             $cacheKey = 'asset.' . $type . '.groups.' . $group;
+
             if ($this->config->get('asset::use_cache') && Cache::has($cacheKey))
             {
                 $output .= Cache::get($cacheKey);
@@ -139,40 +152,43 @@ class Asset {
      */
     protected function processAssets($assets, $type, $group)
     {
-        foreach ($assets as $path) {
+        foreach ($assets as $path => $options) {
 
-            $filesData = $this->findAssets($path);
+            $files = $this->findAssets($path);
 
             // skip not found assets
-            if ( ! $filesData) {
+            if ( ! $files) {
                 throw new \Exception("No assets found for the path: " . $path, 1);
             }
 
-            foreach ($filesData['files'] as $file) {
+            foreach ($files as $file) {
 
                 $assetData = array(
-                    'is_minified' => $this->isMinified($file->getRealPath())
+                    'is_minified' => $this->isMinified($file->getRealPath()),
+                    'src' => $file->getRealPath(),
                 );
+
+                // merge in asset options
+                $assetData = array_merge($assetData, $options);
 
                 switch ($file->getExtension()) {
                     case 'css':
                         $assetData['contents'] = file_get_contents($file->getRealPath());
-                        $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
+                        $assetData += $this->buildTargetPaths($file, 'styles');
                         $this->processed['styles'][$group][$assetData['link']] = $assetData;
                         break;
                     case 'less':
                         $assetData['contents'] = $this->compileLess($file);
-                        $assetData += $this->buildTargetPaths($file, 'styles', $filesData['search_path']);
+                        $assetData += $this->buildTargetPaths($file, 'styles');
                         $this->processed['styles'][$group][$assetData['link']] = $assetData;
                         break;
                     case 'js':
                         $assetData['contents'] = file_get_contents($file->getRealPath());
-                        $assetData += $this->buildTargetPaths($file, 'scripts', $filesData['search_path']);
+                        $assetData += $this->buildTargetPaths($file, 'scripts');
                         $this->processed['scripts'][$group][$assetData['link']] = $assetData;
                         break;
                     default:
-                        $assetData['src'] = $file->getRealPath();
-                        $assetData += $this->buildTargetPaths($file, 'static', $filesData['search_path']);
+                        $assetData += $this->buildTargetPaths($file, 'static');
                         $this->processed['static'][$group][$assetData['link']] = $assetData;
                         break;
                 }
@@ -190,27 +206,19 @@ class Asset {
      */
     protected function findAssets($path)
     {
-        $paths = array_merge($this->paths, $this->config->get('asset::search_paths'));
+        $searchPaths = array_merge($this->paths, $this->config->get('asset::search_paths'));
 
-        foreach ($paths as $searchPath) {
+        foreach ($searchPaths as $searchPath) {
 
-            $fullSearcPath = base_path() . $searchPath . '/';
-
-            $fullPath = $fullSearcPath . $path;
+            $fullPath = base_path() . $searchPath . '/' . $path;
 
             if (File::isDirectory($fullPath)) {
-                return array(
-                    'search_path' => $fullSearcPath,
-                    'files' => File::allFiles($fullPath),
-                );
+                return File::allFiles($fullPath);
             } elseif (File::isFile($fullPath)) {
-                return array(
-                    'search_path' => $fullSearcPath,
-                    'files' => Finder::create()
-                                ->depth(0)
-                                ->name(basename($fullPath))
-                                ->in(dirname($fullPath)),
-                );
+                return Finder::create()
+                        ->depth(0)
+                        ->name(basename($fullPath))
+                        ->in(dirname($fullPath));
             }
         }
     }
@@ -235,10 +243,11 @@ class Asset {
      *
      * @param  Symfony\Component\Finder\SplFileInfo|string $file
      *         The file object or the filename
-     * @param  string $type    The assets type
-     * @return array           The target paths array
+     * @param  string $type         The assets type
+     * @param  string $searchPath   The search path where the asset was found
+     * @return array                The target paths array
      */
-    protected function buildTargetPaths($file, $type, $searchPath)
+    protected function buildTargetPaths($file, $type, $searchPath = null)
     {
         if ($file instanceof \Symfony\Component\Finder\SplFileInfo) {
             $pathName = $file->getBaseName();
@@ -246,13 +255,19 @@ class Asset {
             $pathName = $file;
         }
 
-        $package = $this->getPackageName($file->getRealPath(), $searchPath);
-
         // replace .less extension by .css
         $pathName = str_ireplace('.less', '.css', $pathName);
 
-        $link = '/' . $this->config->get('asset::public_dir') . '/' . $type . '/';
-        $link .= $package . '/' . $pathName;
+        //$link = '/' . $this->config->get('asset::public_dir') . '/' . $type;
+        $link = '/' . $this->config->get('asset::public_dir');
+        $link .= str_ireplace(base_path(), '', $file->getRealPath());
+
+        /*if ($searchPath) {
+            $package = $this->getPackageName($file->getRealPath(), $searchPath);
+            $link .= $package . '/';
+        }*/
+
+        //$link .= $pathName;
 
         return array(
             'link' => $link,
@@ -281,11 +296,10 @@ class Asset {
             return;
         }
 
-
         foreach ($this->processed[$type][$group] as $asset) {
 
             // publish static assets right away
-            if ($type === 'static') {
+            if ($type === 'static' || ( ! $asset['link_resource'])) {
                 $this->publishStatic($asset);
                 continue;
             }
@@ -303,6 +317,11 @@ class Asset {
 
             // publish files separately
             $output .= $this->publishAsset($asset, $type);
+        }
+
+        // no further processing needed for static assets
+        if ($type === 'static') {
+            return;
         }
 
         // publish combined assets
@@ -331,15 +350,10 @@ class Asset {
      */
     protected function publishCombined($contents, $type)
     {
-        if ($type === 'styles') {
-            $filename = $this->config->get('asset::combined_styles');
-        } elseif ($type === 'scripts') {
-            $filename = $this->config->get('asset::combined_scripts');
-        }
+        $filename = $this->config->get('asset::combined_' . $type);
 
         $assetData = $this->buildTargetPaths(
             $filename,
-            null,
             $type
         );
 
