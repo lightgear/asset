@@ -7,9 +7,9 @@ return array(
      * relative to the project root
      */
     'search_paths' => array(
-        '/workbench',
-        '/vendor',
-        '/app/assets',
+        'workbench',
+        'vendor',
+        'app/assets',
     ),
 
     /**

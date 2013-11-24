@@ -91,9 +91,12 @@ class Asset {
     {
         $assetsDir = public_path() . '/' . $this->config->get('asset::public_dir');
 
-        foreach (array_keys($this->processed) as $typeDir) {
-            File::deleteDirectory($assetsDir . '/' . $typeDir);
+        foreach ($this->config->get('asset::search_paths') as $searchPath) {
+            File::deleteDirectory($assetsDir . '/' . $searchPath);
         }
+
+        File::delete($assetsDir . '/' . $this->config->get('asset::combined_styles'));
+        File::delete($assetsDir . '/' . $this->config->get('asset::combined_scripts'));
 
         foreach ($this->getGroupNames('styles') as $group) {
             Cache::forget('asset.styles.groups.' . $group);
@@ -210,7 +213,7 @@ class Asset {
 
         foreach ($searchPaths as $searchPath) {
 
-            $fullPath = base_path() . $searchPath . '/' . $path;
+            $fullPath = base_path() . '/' . $searchPath . '/' . $path;
 
             if (File::isDirectory($fullPath)) {
                 return File::allFiles($fullPath);
@@ -250,24 +253,16 @@ class Asset {
     protected function buildTargetPaths($file, $type, $searchPath = null)
     {
         if ($file instanceof \Symfony\Component\Finder\SplFileInfo) {
-            $pathName = $file->getBaseName();
+            $path = $file->getRealPath();
         } else {
-            $pathName = $file;
+            $path = '/' . $file;
         }
 
-        // replace .less extension by .css
-        $pathName = str_ireplace('.less', '.css', $pathName);
-
-        //$link = '/' . $this->config->get('asset::public_dir') . '/' . $type;
         $link = '/' . $this->config->get('asset::public_dir');
-        $link .= str_ireplace(base_path(), '', $file->getRealPath());
+        $link .= str_ireplace(base_path(), '', $path);
 
-        /*if ($searchPath) {
-            $package = $this->getPackageName($file->getRealPath(), $searchPath);
-            $link .= $package . '/';
-        }*/
-
-        //$link .= $pathName;
+        // replace .less extension by .css
+        $link = str_ireplace('.less', '.css', $link);
 
         return array(
             'link' => $link,
