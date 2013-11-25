@@ -83,6 +83,16 @@ class Asset {
     }
 
     /**
+     * Get registered paths
+     *
+     * @return array All registered paths.
+     */
+    public function getPaths()
+    {
+        return array_merge($this->paths, $this->config->get('asset::search_paths'));
+    }
+
+    /**
      * Delete published assets
      *
      * @return void
@@ -91,7 +101,7 @@ class Asset {
     {
         $assetsDir = public_path() . '/' . $this->config->get('asset::public_dir');
 
-        foreach ($this->config->get('asset::search_paths') as $searchPath) {
+        foreach ($this->getPaths() as $searchPath) {
             File::deleteDirectory($assetsDir . '/' . $searchPath);
         }
 
@@ -209,9 +219,7 @@ class Asset {
      */
     protected function findAssets($path)
     {
-        $searchPaths = array_merge($this->paths, $this->config->get('asset::search_paths'));
-
-        foreach ($searchPaths as $searchPath) {
+        foreach ($this->getPaths() as $searchPath) {
 
             $fullPath = base_path() . '/' . $searchPath . '/' . $path;
 
