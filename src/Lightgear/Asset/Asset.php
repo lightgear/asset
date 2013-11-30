@@ -413,8 +413,7 @@ class Asset {
     protected function minifyAsset($contents, $type)
     {
         if ($type === 'styles') {
-            $cssMin = new \CSSmin;
-            return $cssMin->run($contents);
+            return \Minify_CSS::minify($contents, array('preserveComments' => false));
         } elseif ($type === 'scripts') {
             return \JSMin::minify($contents);
         }
