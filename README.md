@@ -54,18 +54,18 @@ For example, to register a package assets you would use something like this in y
 
 ```php
 /**
-	 * Register the service provider.
-	 *
-	 * @return void
-	 */
-	public function register()
-	{
-	    $styles = array(
-	        'src/assets/styles',
-	        'src/assets/pure/pure/pure-min.css'
-	    );
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $styles = array(
+            'src/assets/styles',
+            'src/assets/pure/pure/pure-min.css'
+        );
 
-		$asset = $this->app->make('asset');
+        $asset = $this->app->make('asset');
 
         // register styles of a vendor package and assign them
         // to the default "general" group
@@ -77,7 +77,7 @@ For example, to register a package assets you would use something like this in y
 
         // the same goes with scripts for whom you would use for example
         $asset->registerScripts(array('src/scripts')), 'vendor/package');
-	}
+    }
 ```
 or you could register assets located in **app/assets** with
 ```php
@@ -149,4 +149,3 @@ sudo setfacl -dR -m u:www-data:rwX -m u:`whoami`:rwX app/storage
 1.1: Laravel 4.1 compatibility  
 1.0: add support for asset groups and improve cache handling  
 0.8: initial release
- 

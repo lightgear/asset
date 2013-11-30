@@ -51,4 +51,5 @@ return array(
      * Turn on/off assets caching.
      */
     'use_cache' => false,
+
 );
