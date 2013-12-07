@@ -38,6 +38,12 @@ return array(
     'combine' => false,
 
     /**
+     * Instead of combining all files into one, create one
+     * combined file for each group.
+     */
+    'combine_by_group' => false,
+
+    /**
      * The filename of the combined styles.
      */
     'combined_styles' => 'application.css',
