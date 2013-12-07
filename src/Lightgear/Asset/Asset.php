@@ -321,7 +321,7 @@ class Asset {
 
         // publish combined assets
         if ($combine) {
-            $output .= $this->publishCombined($combinedContents, $type);
+            $output .= $this->publishCombined($combinedContents, $type, $group);
         }
 
         // cache asset resurce
@@ -343,9 +343,15 @@ class Asset {
      * @param  string $type     The assets type
      * @return string           The link to the asset resource
      */
-    protected function publishCombined($contents, $type)
+    protected function publishCombined($contents, $type, $group = 'general')
     {
-        $filename = $this->config->get('asset::combined_' . $type);
+        if ($this->config->get('asset::combine_by_group') && $group !== 'general') {
+            $prefix = $group . '/';
+        } else {
+            $prefix = '';
+        }
+
+        $filename = $prefix . $this->config->get('asset::combined_' . $type);
 
         $assetData = $this->buildTargetPaths(
             $filename,
