@@ -1,3 +1,9 @@
+# Discountinued
+
+This project has been discountinued since there are better way to handle assets nowadays.  
+I switched to [Gulp.js](http://gulpjs.com/) and will not get back.   
+This repository will be kept in case somebody uses it in production.
+
 # Simple and effective assets management for Laravel 4
 
 ## Overview
